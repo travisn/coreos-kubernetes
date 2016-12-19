@@ -9,7 +9,7 @@ require_relative '../../lib/util.rb'
 
 Vagrant.require_version ">= 1.6.0"
 
-$update_channel = "alpha"
+$update_channel = "beta"
 $controller_count = 1
 $controller_vm_memory = 2048
 $worker_count = 1
