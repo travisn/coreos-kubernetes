@@ -113,7 +113,7 @@ If using Flannel for networking, setup the Flannel CNI configuration with below.
 
 ### Create the kubelet Unit
 
-The [kubelet](http://kubernetes.io/docs/admin/kubelet.html) is the agent on each machine that starts and stops Pods and other machine-level tasks. The kubelet communicates with the API server (also running on the master nodes) with the TLS certificates we placed on disk earlier.
+The [kubelet][kubelet-admin] is the agent on each machine that starts and stops Pods and other machine-level tasks. The kubelet communicates with the API server (also running on the master nodes) with the TLS certificates we placed on disk earlier.
 
 On the master node, the kubelet is configured to communicate with the API server, but not register for cluster work, as shown in the `--register-schedulable=false` line in the YAML excerpt below. This prevents user pods being scheduled on the master nodes, and ensures cluster work is routed only to task-specific worker nodes.
 
@@ -123,10 +123,10 @@ Note that the kubelet running on a master node may log repeated attempts to post
 
 * Replace `${ADVERTISE_IP}` with this node's publicly routable IP.
 * Replace `${DNS_SERVICE_IP}`
-* Replace `${K8S_VER}` This will map to: `quay.io/coreos/hyperkube:${K8S_VER}` release, e.g. `v1.5.2_coreos.0`.
+* Replace `${K8S_VER}` This will map to: `quay.io/coreos/hyperkube:${K8S_VER}` release, e.g. `v1.5.4_coreos.0`.
 * If using Calico for network policy
   - Replace `${NETWORK_PLUGIN}` with `cni`
-  - Add the following to `RKT_OPS=`
+  - Add the following to `RKT_RUN_ARGS=`
     ```
     --volume cni-bin,kind=host,source=/opt/cni/bin \
     --mount volume=cni-bin,target=/opt/cni/bin
@@ -138,12 +138,14 @@ Note that the kubelet running on a master node may log repeated attempts to post
   - [allowing access to insecure container registries][insecure-registry]
   - [changing your CoreOS auto-update settings][update]
 
+**Note**: Anyone with access to port 10250 on a node can execute arbitrary code in a pod on the node. Information, including logs and metadata, is also disclosed on port 10255. See [securing the Kubelet API][securing-kubelet-api] for more information.
+
 **/etc/systemd/system/kubelet.service**
 
 ```yaml
 [Service]
-Environment=KUBELET_VERSION=${K8S_VER}
-Environment="RKT_OPTS=--uuid-file-save=/var/run/kubelet-pod.uuid \
+Environment=KUBELET_IMAGE_TAG=${K8S_VER}
+Environment="RKT_RUN_ARGS=--uuid-file-save=/var/run/kubelet-pod.uuid \
   --volume var-log,kind=host,source=/var/log \
   --mount volume=var-log,target=/var/log \
   --volume dns,kind=host,source=/etc/resolv.conf \
@@ -194,7 +196,7 @@ spec:
   hostNetwork: true
   containers:
   - name: kube-apiserver
-    image: quay.io/coreos/hyperkube:v1.5.2_coreos.0
+    image: quay.io/coreos/hyperkube:v1.5.4_coreos.0
     command:
     - /hyperkube
     - apiserver
@@ -261,7 +263,7 @@ spec:
   hostNetwork: true
   containers:
   - name: kube-proxy
-    image: quay.io/coreos/hyperkube:v1.5.2_coreos.0
+    image: quay.io/coreos/hyperkube:v1.5.4_coreos.0
     command:
     - /hyperkube
     - proxy
@@ -300,7 +302,7 @@ spec:
   hostNetwork: true
   containers:
   - name: kube-controller-manager
-    image: quay.io/coreos/hyperkube:v1.5.2_coreos.0
+    image: quay.io/coreos/hyperkube:v1.5.4_coreos.0
     command:
     - /hyperkube
     - controller-manager
@@ -325,7 +327,6 @@ spec:
     - mountPath: /etc/ssl/certs
       name: ssl-certs-host
       readOnly: true
-  hostNetwork: true
   volumes:
   - hostPath:
       path: /etc/kubernetes/ssl
@@ -353,7 +354,7 @@ spec:
   hostNetwork: true
   containers:
   - name: kube-scheduler
-    image: quay.io/coreos/hyperkube:v1.5.2_coreos.0
+    image: quay.io/coreos/hyperkube:v1.5.4_coreos.0
     command:
     - /hyperkube
     - scheduler
@@ -671,3 +672,5 @@ kube-proxy-$node
 [mount-disks]: https://coreos.com/os/docs/latest/mounting-storage.html
 [insecure-registry]: https://coreos.com/os/docs/latest/registry-authentication.html#using-a-registry-without-ssl-configured
 [update]: https://coreos.com/os/docs/latest/switching-channels.html
+[securing-kubelet-api]: kubelet-wrapper.md#Securing-the-Kubelet-API
+[kubelet-admin]: https://kubernetes.io/docs/admin/kubelet/
