@@ -105,10 +105,10 @@ Create `/etc/systemd/system/kubelet.service` and substitute the following variab
 * Replace `${MASTER_HOST}` 
 * Replace `${ADVERTISE_IP}` with this node's publicly routable IP.
 * Replace `${DNS_SERVICE_IP}`
-* Replace `${K8S_VER}` This will map to: `quay.io/coreos/hyperkube:${K8S_VER}` release, e.g. `v1.5.2_coreos.0`.
+* Replace `${K8S_VER}` This will map to: `quay.io/coreos/hyperkube:${K8S_VER}` release, e.g. `v1.5.4_coreos.0`.
 * If using Calico for network policy
   - Replace `${NETWORK_PLUGIN}` with `cni`
-  - Add the following to `RKT_OPS=`
+  - Add the following to `RKT_RUN_ARGS=`
     ```
     --volume cni-bin,kind=host,source=/opt/cni/bin \
     --mount volume=cni-bin,target=/opt/cni/bin
@@ -120,12 +120,14 @@ Create `/etc/systemd/system/kubelet.service` and substitute the following variab
   - [allowing access to insecure container registries][insecure-registry]
   - [changing your CoreOS auto-update settings][update]
 
+**Note**: Anyone with access to port 10250 on a node can execute arbitrary code in a pod on the node. Information, including logs and metadata, is also disclosed on port 10255. See [securing the Kubelet API][securing-kubelet-api] for more information.
+
 **/etc/systemd/system/kubelet.service**
 
 ```yaml
 [Service]
-Environment=KUBELET_VERSION=${K8S_VER}
-Environment="RKT_OPTS=--uuid-file-save=/var/run/kubelet-pod.uuid \
+Environment=KUBELET_IMAGE_TAG=${K8S_VER}
+Environment="RKT_RUN_ARGS=--uuid-file-save=/var/run/kubelet-pod.uuid \
   --volume dns,kind=host,source=/etc/resolv.conf \
   --mount volume=dns,target=/etc/resolv.conf \
   --volume var-log,kind=host,source=/var/log \
@@ -136,7 +138,7 @@ ExecStartPre=-/usr/bin/rkt rm --uuid-file=/var/run/kubelet-pod.uuid
 ExecStart=/usr/lib/coreos/kubelet-wrapper \
   --api-servers=https://${MASTER_HOST} \
   --cni-conf-dir=/etc/kubernetes/cni/net.d \
-  --network-plugin=cni \
+  --network-plugin=${NETWORK_PLUGIN} \
   --container-runtime=docker \
   --register-node=true \
   --allow-privileged=true \
@@ -173,7 +175,7 @@ spec:
   hostNetwork: true
   containers:
   - name: kube-proxy
-    image: quay.io/coreos/hyperkube:v1.5.2_coreos.0
+    image: quay.io/coreos/hyperkube:v1.5.4_coreos.0
     command:
     - /hyperkube
     - proxy
@@ -274,3 +276,4 @@ To check the health of the kubelet systemd unit that we created, run `systemctl 
 [mount-disks]: https://coreos.com/os/docs/latest/mounting-storage.html
 [insecure-registry]: https://coreos.com/os/docs/latest/registry-authentication.html#using-a-registry-without-ssl-configured
 [update]: https://coreos.com/os/docs/latest/switching-channels.html
+[securing-kubelet-api]: kubelet-wrapper.md#Securing-the-Kubelet-API
