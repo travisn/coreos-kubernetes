@@ -16,7 +16,7 @@ $worker_count = 1
 $worker_vm_memory = 2048
 $etcd_count = 1
 $etcd_vm_memory = 512
-$node_disk_sizes = [5, 5, 5] # size in GB of each disk
+$node_disk_sizes = [4, 5, 6] # size in GB of each disk
 
 CONFIG = File.expand_path("config.rb")
 if File.exist?(CONFIG)
