@@ -390,6 +390,26 @@ spec:
 EOF
     fi
 
+    local TEMPLATE=/srv/kubernetes/manifests/add-on-cluster-admin-crb.yaml
+    if [ ! -f $TEMPLATE ]; then
+        echo "TEMPLATE: $TEMPLATE"
+        mkdir -p $(dirname $TEMPLATE)
+        cat << EOF > $TEMPLATE
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: add-on-cluster-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: kube-system
+EOF
+    fi
+
     local TEMPLATE=/srv/kubernetes/manifests/kube-dns-de.yaml
     if [ ! -f $TEMPLATE ]; then
         echo "TEMPLATE: $TEMPLATE"
@@ -1030,6 +1050,8 @@ function start_addons {
     done
 
     echo
+    echo "K8S: addon cluster admin"
+    curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/add-on-cluster-admin-crb.yaml)" "http://127.0.0.1:8080/apis/rbac.authorization.k8s.io/v1beta1/clusterrolebindings" > /dev/null
     echo "K8S: DNS addon"
     curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dns-de.yaml)" "http://127.0.0.1:8080/apis/extensions/v1beta1/namespaces/kube-system/deployments" > /dev/null
     curl --silent -H "Content-Type: application/yaml" -XPOST -d"$(cat /srv/kubernetes/manifests/kube-dns-svc.yaml)" "http://127.0.0.1:8080/api/v1/namespaces/kube-system/services" > /dev/null
